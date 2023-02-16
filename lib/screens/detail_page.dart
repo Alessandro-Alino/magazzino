@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:magazzino/controllers/app_provider.dart';
 import 'package:magazzino/models/WooCommerceModels/product_variations_model.dart';
 import 'package:magazzino/models/WooCommerceModels/products_model.dart';
@@ -54,8 +55,11 @@ class _DetailPageState extends State<DetailPage> {
             flexibleSpace: FlexibleSpaceBar(
               background: Hero(
                 tag: widget.product.id.toString(),
-                child: Image.network(
-                  '${widget.product.images!.first!.src}',
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Image.network(
+                    '${widget.product.images!.first!.src}',
+                  ),
                 ),
               ),
               title: Container(
@@ -160,9 +164,13 @@ class ListOfProdVariation extends StatelessWidget {
               listaSedi[0][0]['quantita'].toString();
           appProvider.tagliaQntrdController.text =
               listaSedi[0][1]['quantita'].toString();
+          appProvider.regularPriceController.text =
+              prodVar.regularPrice.toString();
+          appProvider.salePriceController.text = prodVar.salePrice.toString();
           showModalBottomSheet(
               backgroundColor: Colors.transparent,
               isScrollControlled: true,
+              elevation: 0,
               context: context,
               builder: (_) {
                 return CustomModalBottom(
@@ -173,6 +181,8 @@ class ListOfProdVariation extends StatelessWidget {
               }).then((value) {
             appProvider.reginaQntController.text = '';
             appProvider.tagliaQntrdController.text = '';
+            appProvider.regularPriceController.text = '';
+            appProvider.salePriceController.text = '';
           });
         }
       },
@@ -196,57 +206,69 @@ class ListOfProdVariation extends StatelessWidget {
                   listaSedi.isEmpty
                       ? Padding(
                           padding: const EdgeInsets.all(0.0),
-                          child: PopupMenuButton(
-                              icon: const Icon(
-                                Icons.more_vert,
-                                color: Colors.white,
-                              ),
-                              color: Colors.blueGrey[800],
-                              offset: const Offset(-15, 40),
-                              itemBuilder: (context) {
-                                return [
-                                  PopupMenuItem(
-                                      child: ListTile(
-                                    onTap: () {
-                                      //Aggiungere sede nei meta_data ad una singola variazione
-                                      Map sediList = {
-                                        "meta_data": [
-                                          {
-                                            "key": "sedi",
-                                            "value": [
-                                              {"sede": "Regina", "quantita": 0},
+                          child: appProvider.isLoading
+                              ? const CircularProgressIndicator()
+                              : PopupMenuButton(
+                                  icon: const Icon(
+                                    Icons.more_vert,
+                                    color: Colors.white,
+                                  ),
+                                  color: Colors.blueGrey[800],
+                                  offset: const Offset(-15, 40),
+                                  itemBuilder: (context) {
+                                    return [
+                                      PopupMenuItem(
+                                          child: ListTile(
+                                        onTap: () {
+                                          //Aggiungere sede nei meta_data ad una singola variazione
+                                          Map sediList = {
+                                            "meta_data": [
                                               {
-                                                "sede": "Tagliamento",
-                                                "quantita": 0
+                                                "key": "sedi",
+                                                "value": [
+                                                  {
+                                                    "sede": "Regina",
+                                                    "quantita": 0
+                                                  },
+                                                  {
+                                                    "sede": "Tagliamento",
+                                                    "quantita": 0
+                                                  }
+                                                ]
                                               }
                                             ]
+                                          };
+                                          if (appProvider.connessione == true) {
+                                            appProvider.setIsLoading(true);
+                                            Navigator.pop(context);
+                                            appProvider
+                                                .addSediToMetaData(
+                                                    appProvider.token,
+                                                    product,
+                                                    prodVar,
+                                                    sediList)
+                                                .then((value) {
+                                              appProvider.setIsLoading(false);
+                                            });
+                                          } else {
+                                            appProvider.mostraMessaggio(
+                                                context,
+                                                'Nessuna Connessione',
+                                                Colors.red,
+                                                Icons.wifi_off);
                                           }
-                                        ]
-                                      };
-                                      if (appProvider.connessione == true) {
-                                        appProvider
-                                            .addSediToMetaData(
-                                                appProvider.token,
-                                                product,
-                                                prodVar,
-                                                sediList)
-                                            .then((value) {
-                                          Navigator.pop(context);
-                                          debugPrint(value.toString());
-                                        });
-                                      } else {}
-                                    },
-                                    leading: const Icon(
-                                      Icons.store,
-                                      color: Colors.white,
-                                    ),
-                                    title: const Text(
-                                      'Aggiungi le Sedi',
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                  ))
-                                ];
-                              }),
+                                        },
+                                        leading: const Icon(
+                                          Icons.store,
+                                          color: Colors.white,
+                                        ),
+                                        title: const Text(
+                                          'Aggiungi le Sedi',
+                                          style: TextStyle(color: Colors.white),
+                                        ),
+                                      ))
+                                    ];
+                                  }),
                         )
                       : const SizedBox()
                 ],
@@ -302,7 +324,7 @@ class ListOfProdVariation extends StatelessWidget {
                         ...prodVar.attributes!.map((e) {
                           return Container(
                               constraints:
-                                  const BoxConstraints(minWidth: 100.0),
+                                  const BoxConstraints(minWidth: 110.0),
                               margin: const EdgeInsets.all(2.0),
                               padding: const EdgeInsets.all(8.0),
                               decoration: BoxDecoration(
@@ -310,7 +332,8 @@ class ListOfProdVariation extends StatelessWidget {
                                   borderRadius: BorderRadius.circular(10.0)),
                               child: Text(
                                 e!.option.toString(),
-                                style: const TextStyle(color: Colors.white),
+                                style: const TextStyle(
+                                    color: Colors.white, fontSize: 16),
                               ));
                         })
                       ],
@@ -381,18 +404,41 @@ class ListOfProdVariation extends StatelessWidget {
                         color: Colors.blueGrey[700],
                         borderRadius: BorderRadius.circular(10.0)),
                     child: Row(
-                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        const Text(
-                          'Disponibiltà totale:',
-                          overflow: TextOverflow.fade,
-                          style: TextStyle(color: Colors.white),
+                        Container(
+                          padding: const EdgeInsets.all(8.0),
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(10.0),
+                          ),
+                          child: Text(
+                            '${prodVar.regularPrice} €',
+                            style: const TextStyle(
+                                fontSize: 15,
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                decoration: TextDecoration.lineThrough,
+                                decorationThickness: 2.0,
+                                decorationColor: Colors.black54),
+                          ),
                         ),
-                        const SizedBox(
-                          width: 15,
+                        Container(
+                          padding: const EdgeInsets.all(8.0),
+                          decoration: BoxDecoration(
+                              color: Colors.green,
+                              borderRadius: BorderRadius.circular(10.0)),
+                          child: Text(
+                            '${prodVar.salePrice} €',
+                            style: const TextStyle(
+                              fontSize: 15,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                         Text(
-                          prodVar.stockQuantity.toString(),
+                          'Disponibiltà totale: ${prodVar.stockQuantity}',
                           overflow: TextOverflow.fade,
                           style: const TextStyle(color: Colors.white),
                         ),
@@ -481,6 +527,8 @@ class CustomModalBottom extends StatelessWidget {
                   margin: const EdgeInsets.all(16.0),
                   child: TextField(
                     controller: appProvider.reginaQntController,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     decoration: const InputDecoration(
                         border: OutlineInputBorder(),
                         label: Text(
@@ -495,10 +543,49 @@ class CustomModalBottom extends StatelessWidget {
                   margin: const EdgeInsets.all(4.0),
                   child: TextField(
                     controller: appProvider.tagliaQntrdController,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     decoration: const InputDecoration(
                         border: OutlineInputBorder(),
                         label: Text(
                           'Tagliamento',
+                          style: TextStyle(color: Colors.white),
+                        )),
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ))
+              ],
+            ),
+            //TextField prezzo regolare e scontato
+            Row(
+              children: [
+                Flexible(
+                    child: Container(
+                  margin: const EdgeInsets.all(16.0),
+                  child: TextField(
+                    controller: appProvider.regularPriceController,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        label: Text(
+                          'Prezzo Regolare',
+                          style: TextStyle(color: Colors.white),
+                        )),
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                )),
+                Flexible(
+                    child: Container(
+                  margin: const EdgeInsets.all(4.0),
+                  child: TextField(
+                    controller: appProvider.salePriceController,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        label: Text(
+                          'Prezzo Scontato',
                           style: TextStyle(color: Colors.white),
                         )),
                     style: const TextStyle(color: Colors.white),
@@ -513,16 +600,37 @@ class CustomModalBottom extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 ElevatedButton(
+                    style: ButtonStyle(
+                      fixedSize: MaterialStateProperty.all(
+                        const Size(90, 40),
+                      ),
+                      shape: MaterialStateProperty.all(RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10.0),
+                      )),
+                    ),
                     onPressed: () => Navigator.pop(context),
                     child: const Text('Indietro')),
                 ElevatedButton(
+                    style: ButtonStyle(
+                      fixedSize: MaterialStateProperty.all(
+                        const Size(90, 40),
+                      ),
+                      shape: MaterialStateProperty.all(RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10.0),
+                      )),
+                    ),
                     onPressed: () {
                       if (appProvider.connessione) {
+                        FocusManager.instance.primaryFocus?.unfocus();
+                        appProvider.setIsLoading(true);
                         int totQnt = int.parse(
                                 appProvider.reginaQntController.text) +
                             int.parse(appProvider.tagliaQntrdController.text);
                         Map updateData = {
                           "stock_quantity": totQnt,
+                          "regular_price":
+                              appProvider.regularPriceController.text,
+                          "sale_price": appProvider.salePriceController.text,
                           "meta_data": [
                             {
                               "key": "sedi",
@@ -545,11 +653,17 @@ class CustomModalBottom extends StatelessWidget {
                             .updateQuantity(
                                 appProvider.token, prod, prodVar, updateData)
                             .then((value) {
+                          appProvider.setIsLoading(false);
                           Navigator.pop(context);
                         });
                       } else {}
                     },
-                    child: const Text('Salva')),
+                    child: appProvider.isLoading
+                        ? const SizedBox(
+                            width: 17,
+                            height: 17,
+                            child: CircularProgressIndicator())
+                        : const Text('Salva')),
               ],
             ),
             const SizedBox(

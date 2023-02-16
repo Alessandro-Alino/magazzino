@@ -26,6 +26,8 @@ class AppProvider extends ChangeNotifier {
   List<ProductVariationsModel> _productVarList = [];
   final TextEditingController _reginaQntController = TextEditingController();
   final TextEditingController _tagliaQntrdController = TextEditingController();
+  final TextEditingController _regularPriceController = TextEditingController();
+  final TextEditingController _salePriceController = TextEditingController();
 
   //Cambio Tema Light e Dark
   setLightOrDarkMode() {
@@ -186,4 +188,6 @@ class AppProvider extends ChangeNotifier {
   List<ProductVariationsModel> get productVariationsList => _productVarList;
   TextEditingController get reginaQntController => _reginaQntController;
   TextEditingController get tagliaQntrdController => _tagliaQntrdController;
+  TextEditingController get regularPriceController => _regularPriceController;
+  TextEditingController get salePriceController => _salePriceController;
 }
