@@ -25,6 +25,7 @@ class _HomePageState extends State<HomePage> {
       appProvider.readAll(appProvider.token);
     });
     futureOfReadAll = appProvider.readAll(appProvider.token);
+
     super.initState();
   }
 
@@ -40,7 +41,7 @@ class _HomePageState extends State<HomePage> {
 
     List<CategoriesModel> categoriesList = appProvider.categoriesList;
     List<ProductsModel> productssList = appProvider.productsList;
-
+    double width = MediaQuery.of(context).size.width;
     return WillPopScope(
       onWillPop: () async {
         //Messaggio di conferma prima di eseguire Logout
@@ -88,53 +89,7 @@ class _HomePageState extends State<HomePage> {
             elevation: 1,
             title: const Text('iCom'),
             centerTitle: true,
-            actions: [
-              IconButton(
-                  onPressed: () {
-                    //Messaggio di conferma prima di eseguire Logout
-                    showDialog(
-                        context: context,
-                        builder: (context) {
-                          return AlertDialog(
-                            title: const Text('Eseguire il Logout?'),
-                            actions: [
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceAround,
-                                children: [
-                                  OutlinedButton(
-                                      style: ButtonStyle(
-                                        shape: MaterialStateProperty.all(
-                                            RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(10.0),
-                                        )),
-                                      ),
-                                      onPressed: () {
-                                        Navigator.pop(context);
-                                      },
-                                      child: const Text('No')),
-                                  ElevatedButton(
-                                      style: ButtonStyle(
-                                        shape: MaterialStateProperty.all(
-                                            RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(10.0),
-                                        )),
-                                      ),
-                                      onPressed: () {
-                                        appProvider.userLogin(false);
-                                        Navigator.pop(context);
-                                      },
-                                      child: const Text('Si'))
-                                ],
-                              )
-                            ],
-                          );
-                        });
-                  },
-                  icon: const Icon(Icons.arrow_back_rounded))
-            ],
+            actions: const [],
           ),
           drawer: const MyDrawer(),
           body: appProvider.connessione == false
@@ -178,15 +133,36 @@ class _HomePageState extends State<HomePage> {
                       builder: (context, snapshot) {
                         if (snapshot.connectionState == ConnectionState.done) {
                           return Expanded(
-                            child: ListView.builder(
-                              itemCount: productssList.length,
-                              itemBuilder: (context, index) {
-                                ProductsModel prod = productssList[index];
-                                return ListOfProducts(
-                                  prod: prod,
-                                );
-                              },
-                            ),
+                            child: width > 600
+                                ? GridView.builder(
+                                    gridDelegate:
+                                        SliverGridDelegateWithFixedCrossAxisCount(
+                                            childAspectRatio: width >= 750
+                                                ? 3 / 2.8
+                                                : 3 / 2.2,
+                                            crossAxisSpacing: 0.5,
+                                            mainAxisSpacing: 0.5,
+                                            crossAxisCount: width >= 1000
+                                                ? 4
+                                                : width >= 750
+                                                    ? 3
+                                                    : 2),
+                                    itemCount: productssList.length,
+                                    itemBuilder: (context, index) {
+                                      ProductsModel prod = productssList[index];
+                                      return GridOfProducts(
+                                        prod: prod,
+                                      );
+                                    })
+                                : ListView.builder(
+                                    itemCount: productssList.length,
+                                    itemBuilder: (context, index) {
+                                      ProductsModel prod = productssList[index];
+                                      return ListOfProducts(
+                                        prod: prod,
+                                      );
+                                    },
+                                  ),
                           );
                         } else if (snapshot.connectionState ==
                             ConnectionState.waiting) {
@@ -277,7 +253,7 @@ class ListOfProducts extends StatelessWidget {
           ),
           //Titolo del prodotto e Categorie Prodotto
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               //Immagine del Prodotto
               Hero(
@@ -300,6 +276,7 @@ class ListOfProducts extends StatelessWidget {
                         prod.name.toString(),
                         style:
                             const TextStyle(color: Colors.white, fontSize: 20),
+                        overflow: TextOverflow.fade,
                       ),
                     ),
                     //Categorie Prodotto
@@ -328,6 +305,80 @@ class ListOfProducts extends StatelessWidget {
               ),
             ],
           )),
+    );
+  }
+}
+
+class GridOfProducts extends StatelessWidget {
+  const GridOfProducts({super.key, required this.prod});
+
+  final ProductsModel prod;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(8.0),
+      decoration: BoxDecoration(
+        color: Colors.blueGrey,
+        borderRadius: BorderRadius.circular(10.0),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          //Immagine del Prodotto
+          Hero(
+            tag: prod.id.toString(),
+            child: Image.network(
+              '${prod.images!.first!.src}',
+              width: 100,
+              height: 100,
+            ),
+          ),
+          Flexible(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                //Titolo del Prodotto
+                Padding(
+                  padding: const EdgeInsets.only(top: 16.0),
+                  child: Text(
+                    prod.name.toString(),
+                    style: const TextStyle(color: Colors.white, fontSize: 20),
+                  ),
+                ),
+                //Categorie Prodotto
+                Flexible(
+                  child: SizedBox(
+                    height: 20,
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      scrollDirection: Axis.horizontal,
+                      itemCount: prod.categories!.length,
+                      itemBuilder: (context, index) {
+                        Categoryz? category = prod.categories![index];
+                        return index == prod.categories!.length - 1
+                            ? Text(
+                                category!.name.toString(),
+                                style: TextStyle(color: Colors.grey.shade400),
+                              )
+                            : Text(
+                                '${category!.name.toString()},  ',
+                                style: TextStyle(color: Colors.grey.shade400),
+                              );
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

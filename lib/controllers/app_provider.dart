@@ -11,6 +11,8 @@ class AppProvider extends ChangeNotifier {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _userNameController = TextEditingController();
   final TextEditingController _passWordController = TextEditingController();
+  double? _width;
+  double? _height;
   String _errorUserNameLogin = '';
   String _errorPassLogin = '';
   String _token = '';
@@ -56,6 +58,12 @@ class AppProvider extends ChangeNotifier {
   //Loading Progress
   setIsLoading(bool value) {
     _isLoading = value;
+    notifyListeners();
+  }
+
+  setMediaQuery(BuildContext context) {
+    _width = MediaQuery.of(context).size.width;
+    _height = MediaQuery.of(context).size.height;
     notifyListeners();
   }
 
@@ -173,6 +181,8 @@ class AppProvider extends ChangeNotifier {
   GlobalKey<FormState> get formKey => _formKey;
   TextEditingController get userNameController => _userNameController;
   TextEditingController get passWordController => _passWordController;
+  double? get width => _width;
+  double? get height => _height;
   String get errorUserNameLogin => _errorUserNameLogin;
   String get errorPassLogin => _errorPassLogin;
   String get token => _token;

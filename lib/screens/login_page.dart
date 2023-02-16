@@ -60,7 +60,7 @@ class _LoginPageState extends State<LoginPage> {
           child: Container(
             //Padding iniziale per far salire il contenitore quando viene mostrata la tastiera.
             padding: MediaQuery.of(context).viewInsets,
-            constraints: const BoxConstraints(maxWidth: 800),
+            constraints: const BoxConstraints(maxWidth: 500),
             child: Form(
                 key: appProvider.formKey,
                 child: Column(
