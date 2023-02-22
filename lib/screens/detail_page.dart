@@ -42,6 +42,8 @@ class _DetailPageState extends State<DetailPage> {
   @override
   Widget build(BuildContext context) {
     final appProvider = Provider.of<AppProvider>(context);
+    double width = MediaQuery.of(context).size.width;
+
     //Bool controllo prodotto Semplice o Variabile
     bool productIsVariable =
         describeEnum(widget.product.type.toString()) == 'simple' ? false : true;
@@ -99,18 +101,39 @@ class _DetailPageState extends State<DetailPage> {
                         ),
                       );
                     }
-                    return SliverList(
-                        delegate: SliverChildBuilderDelegate(
-                            childCount: appProvider.productVariationsList
-                                .length, (context, index) {
-                      ProductVariationsModel productVariation =
-                          appProvider.productVariationsList[index];
-                      return ListOfProdVariation(
-                        product: widget.product,
-                        prodVar: productVariation,
-                        appProvider: appProvider,
-                      );
-                    }));
+                    return width > 600
+                        ? SliverGrid.builder(
+                            gridDelegate:
+                                SliverGridDelegateWithFixedCrossAxisCount(
+                                    childAspectRatio: 2.5 / 2,
+                                    crossAxisSpacing: 1,
+                                    mainAxisSpacing: 1,
+                                    crossAxisCount:
+                                        (MediaQuery.of(context).size.width ~/
+                                                300)
+                                            .toInt()),
+                            itemCount: appProvider.productVariationsList.length,
+                            itemBuilder: (context, index) {
+                              ProductVariationsModel productVariation =
+                                  appProvider.productVariationsList[index];
+                              return GridOfProdVariation(
+                                product: widget.product,
+                                prodVar: productVariation,
+                                appProvider: appProvider,
+                              );
+                            })
+                        : SliverList(
+                            delegate: SliverChildBuilderDelegate(
+                                childCount: appProvider.productVariationsList
+                                    .length, (context, index) {
+                            ProductVariationsModel productVariation =
+                                appProvider.productVariationsList[index];
+                            return ListOfProdVariation(
+                              product: widget.product,
+                              prodVar: productVariation,
+                              appProvider: appProvider,
+                            );
+                          }));
                   })
               : SliverToBoxAdapter(
                   child: Container(
@@ -313,6 +336,9 @@ class ListOfProdVariation extends StatelessWidget {
                         Image.network(
                           '${prodVar.image!.src}',
                           height: 150,
+                          errorBuilder: (context, exception, stackTrace) {
+                            return const Text('Err. image...');
+                          },
                         ),
                       ],
                     ),
@@ -453,6 +479,118 @@ class ListOfProdVariation extends StatelessWidget {
   }
 }
 
+class GridOfProdVariation extends StatelessWidget {
+  const GridOfProdVariation(
+      {super.key,
+      required this.product,
+      required this.prodVar,
+      required this.appProvider});
+  final ProductsModel product;
+  final ProductVariationsModel prodVar;
+  final AppProvider appProvider;
+  @override
+  Widget build(BuildContext context) {
+    //Recupero dei dati contenuto in meta_data e conreolla solo se esiste la stringa "sedi"
+    List listaSedi = prodVar.metaData!.map((e) {
+      if (e!.key != null) {
+        return describeEnum(e.key.toString()) == 'sedi' ? e.value : null;
+      } else {
+        return null;
+      }
+    }).toList();
+    //Rimuove i valori dai meta_data non uguali a sedi -> uguali a null
+    listaSedi.removeWhere((element) => element == null);
+    return GestureDetector(
+        onTap: () {
+          if (listaSedi.isEmpty) {
+            appProvider.mostraMessaggio(
+                context,
+                'Aggiungere prima le sedi a questo prodotto!',
+                Colors.amber,
+                Icons.error);
+          } else {
+            appProvider.reginaQntController.text =
+                listaSedi[0][0]['quantita'].toString();
+            appProvider.tagliaQntrdController.text =
+                listaSedi[0][1]['quantita'].toString();
+            appProvider.regularPriceController.text =
+                prodVar.regularPrice.toString();
+            appProvider.salePriceController.text = prodVar.salePrice.toString();
+            showModalBottomSheet(
+                constraints: const BoxConstraints(maxWidth: 600),
+                backgroundColor: Colors.transparent,
+                isScrollControlled: true,
+                elevation: 0,
+                context: context,
+                builder: (_) {
+                  return CustomModalBottom(
+                    appProvider: appProvider,
+                    prod: product,
+                    prodVar: prodVar,
+                  );
+                }).then((value) {
+              appProvider.reginaQntController.text = '';
+              appProvider.tagliaQntrdController.text = '';
+              appProvider.regularPriceController.text = '';
+              appProvider.salePriceController.text = '';
+            });
+          }
+        },
+        child: Container(
+          margin: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(16.0),
+          decoration: BoxDecoration(
+              color: Colors.blueGrey,
+              borderRadius: BorderRadius.circular(10.0)),
+          child: Column(
+            children: [
+              //Immagine e Titolo
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  //Immagine
+                  Image.network(
+                    '${prodVar.image!.src}',
+                    height: 80,
+                  ),
+                  //Titolo
+                  Flexible(
+                      child: Text(
+                    '${product.name}',
+                    style: const TextStyle(color: Colors.white, fontSize: 17),
+                  )),
+                ],
+              ),
+              //Attributi
+              Flexible(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    ...prodVar.attributes!.map((e) {
+                      return Flexible(
+                        child: Container(
+                            padding: const EdgeInsets.all(6.0),
+                            decoration: BoxDecoration(
+                                color: Colors.blueGrey[700],
+                                borderRadius: BorderRadius.circular(10.0)),
+                            child: Text(
+                              e!.option.toString(),
+                              overflow: TextOverflow.fade,
+                              style: const TextStyle(
+                                color: Colors.white,
+                              ),
+                            )),
+                      );
+                    })
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ));
+  }
+}
+
 class CustomModalBottom extends StatelessWidget {
   const CustomModalBottom(
       {super.key,
@@ -481,7 +619,7 @@ class CustomModalBottom extends StatelessWidget {
             //Immagine
             Center(
               child: Image.network(
-                '${prod.images!.first!.src}',
+                '${prodVar.image!.src}',
                 width: 150,
                 height: 150,
               ),

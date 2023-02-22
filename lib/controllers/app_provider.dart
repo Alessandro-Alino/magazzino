@@ -26,6 +26,7 @@ class AppProvider extends ChangeNotifier {
   List<CategoriesModel> _categoriesList = [];
   List<ProductsModel> _productsList = [];
   List<ProductVariationsModel> _productVarList = [];
+  int? _selectedIndex;
   final TextEditingController _reginaQntController = TextEditingController();
   final TextEditingController _tagliaQntrdController = TextEditingController();
   final TextEditingController _regularPriceController = TextEditingController();
@@ -61,9 +62,9 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  setMediaQuery(BuildContext context) {
-    _width = MediaQuery.of(context).size.width;
-    _height = MediaQuery.of(context).size.height;
+  //Elemento selezionato in una lista
+  selectItem(int index) {
+    _selectedIndex = index;
     notifyListeners();
   }
 
@@ -195,6 +196,7 @@ class AppProvider extends ChangeNotifier {
   LoginModel? get loginModel => _loginModel;
   List<CategoriesModel> get categoriesList => _categoriesList;
   List<ProductsModel> get productsList => _productsList;
+  int? get selectedIndex => _selectedIndex;
   List<ProductVariationsModel> get productVariationsList => _productVarList;
   TextEditingController get reginaQntController => _reginaQntController;
   TextEditingController get tagliaQntrdController => _tagliaQntrdController;

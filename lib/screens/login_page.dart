@@ -23,6 +23,39 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     final appProvider = Provider.of<AppProvider>(context);
+    functionLogin() {
+      if (appProvider.formKey.currentState!.validate()) {
+        //Icona Caricamento
+        appProvider.setIsLoading(true);
+        appProvider
+            .requestLogin(context, appProvider.userNameController.text,
+                appProvider.passWordController.text)
+            .then((value) {
+          //Icona Caricamento STOP
+          appProvider.setIsLoading(false);
+          //Controllo se Email o Psw errate
+          if (appProvider.loginModel!.code == 'invalid_username') {
+            appProvider.mostraMessaggio(
+                context, 'Username non valido', Colors.red, Icons.error);
+          } else if (appProvider.loginModel!.code == 'incorrect_password') {
+            appProvider.mostraMessaggio(
+                context, 'Password non valida', Colors.red, Icons.error);
+          } else if (appProvider.loginModel!.success == true) {
+            //Bool per confermare che utente è loggato
+            appProvider.userLogin(true);
+            //Salvare il Token nella variabile
+            appProvider.setToken(appProvider.loginModel!.data.token);
+            //Dopo Login, pulire i textfield e bool passwhide
+            appProvider.userNameController.clear();
+            appProvider.passWordController.clear();
+            appProvider.passVisible == false
+                ? appProvider.showHidePassLogin()
+                : null;
+          }
+        });
+      }
+    }
+
     return Scaffold(
       appBar: AppBar(
         actions: [
@@ -85,13 +118,13 @@ class _LoginPageState extends State<LoginPage> {
                           controller: appProvider.userNameController,
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return '"Email o Username" non può essere vuoto';
+                              return '"Username" non può essere vuoto';
                             }
                             return null;
                           },
                           decoration: const InputDecoration(
                               border: OutlineInputBorder(),
-                              label: Text('Email o Username')),
+                              label: Text('Username')),
                         )),
                     //PASSWORD TEXTFIELD
                     Padding(
@@ -106,6 +139,18 @@ class _LoginPageState extends State<LoginPage> {
                               return 'La Password è troppo corta';
                             }
                             return null;
+                          },
+                          onFieldSubmitted: (value) {
+                            FocusManager.instance.primaryFocus?.unfocus();
+                            if (appProvider.connessione == false) {
+                              appProvider.mostraMessaggio(
+                                  context,
+                                  'Nessuna Connessione',
+                                  Colors.red,
+                                  Icons.wifi_off);
+                            } else {
+                              functionLogin();
+                            }
                           },
                           decoration: InputDecoration(
                               border: const OutlineInputBorder(),
@@ -148,50 +193,7 @@ class _LoginPageState extends State<LoginPage> {
                                       Colors.red,
                                       Icons.wifi_off);
                                 } else {
-                                  if (appProvider.formKey.currentState!
-                                      .validate()) {
-                                    //Icona Caricamento
-                                    appProvider.setIsLoading(true);
-                                    appProvider
-                                        .requestLogin(
-                                            context,
-                                            appProvider.userNameController.text,
-                                            appProvider.passWordController.text)
-                                        .then((value) {
-                                      //Icona Caricamento STOP
-                                      appProvider.setIsLoading(false);
-                                      //Controllo se Email o Psw errate
-                                      if (appProvider.loginModel!.code ==
-                                          'invalid_username') {
-                                        appProvider.mostraMessaggio(
-                                            context,
-                                            'Username non valido',
-                                            Colors.red,
-                                            Icons.error);
-                                      } else if (appProvider.loginModel!.code ==
-                                          'incorrect_password') {
-                                        appProvider.mostraMessaggio(
-                                            context,
-                                            'Password non valida',
-                                            Colors.red,
-                                            Icons.error);
-                                      } else if (appProvider
-                                              .loginModel!.success ==
-                                          true) {
-                                        //Bool per confermare che utente è loggato
-                                        appProvider.userLogin(true);
-                                        //Salvare il Token nella variabile
-                                        appProvider.setToken(
-                                            appProvider.loginModel!.data.token);
-                                        //Dopo Login, pulire i textfield e bool passwhide
-                                        appProvider.userNameController.clear();
-                                        appProvider.passWordController.clear();
-                                        appProvider.passVisible == false
-                                            ? appProvider.showHidePassLogin()
-                                            : null;
-                                      }
-                                    });
-                                  }
+                                  functionLogin();
                                 }
                               },
                               child: appProvider.isLoading

@@ -20,6 +20,7 @@ class MyDrawer extends StatelessWidget {
               IconButton(
                   onPressed: () {
                     appProvider.setLightOrDarkMode();
+                    Navigator.pop(context);
                   },
                   icon: appProvider.isLightMode == true
                       ? const Icon(Icons.dark_mode)

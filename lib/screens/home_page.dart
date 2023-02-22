@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:magazzino/controllers/app_provider.dart';
 import 'package:magazzino/models/WooCommerceModels/categories_models.dart';
@@ -25,7 +24,6 @@ class _HomePageState extends State<HomePage> {
       appProvider.readAll(appProvider.token);
     });
     futureOfReadAll = appProvider.readAll(appProvider.token);
-
     super.initState();
   }
 
@@ -40,8 +38,17 @@ class _HomePageState extends State<HomePage> {
     final appProvider = Provider.of<AppProvider>(context);
 
     List<CategoriesModel> categoriesList = appProvider.categoriesList;
-    List<ProductsModel> productssList = appProvider.productsList;
+    List<ProductsModel> productsList = appProvider.productsList;
+
+    List<ProductsModel> productsListFilt = productsList
+        .where((element) => element.categories!
+            .map((e) => e!.id == appProvider.selectedIndex)
+            .toList()
+            .first)
+        .toList();
+
     double width = MediaQuery.of(context).size.width;
+    double height = MediaQuery.of(context).size.height;
     return WillPopScope(
       onWillPop: () async {
         //Messaggio di conferma prima di eseguire Logout
@@ -95,7 +102,7 @@ class _HomePageState extends State<HomePage> {
           body: appProvider.connessione == false
               ? Container(
                   height: 50,
-                  width: MediaQuery.of(context).size.width,
+                  width: width,
                   margin: const EdgeInsets.all(16.0),
                   padding: const EdgeInsets.all(16.0),
                   decoration: BoxDecoration(
@@ -111,59 +118,78 @@ class _HomePageState extends State<HomePage> {
                     //  padding: const EdgeInsets.all(16.0),
                     //  child: Text(appProvider.token),
                     //),
+                    width > 1000
+                        ? const SizedBox()
+                        : FutureBuilder(
+                            future: futureOfReadAll,
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState ==
+                                  ConnectionState.done) {
+                                return ListOfCategories(
+                                  appProvider: appProvider,
+                                  categoriesList: categoriesList,
+                                );
+                              } else if (snapshot.connectionState ==
+                                  ConnectionState.waiting) {
+                                return Center(
+                                    child: Container(
+                                        padding:
+                                            const EdgeInsets.only(top: 8.0),
+                                        child:
+                                            const SizedBox())); //CircularProgressIndicator()));
+                              }
+                              return const Text('Error');
+                            },
+                          ),
                     FutureBuilder(
                       future: futureOfReadAll,
                       builder: (context, snapshot) {
                         if (snapshot.connectionState == ConnectionState.done) {
-                          return ListOfCategories(
-                            categoriesList: categoriesList,
-                          );
-                        } else if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          return Center(
-                              child: Container(
-                                  padding: const EdgeInsets.only(top: 8.0),
-                                  child: const CircularProgressIndicator()));
-                        }
-                        return const Text('Error');
-                      },
-                    ),
-                    FutureBuilder(
-                      future: futureOfReadAll,
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.done) {
-                          return Expanded(
-                            child: width > 600
-                                ? GridView.builder(
-                                    gridDelegate:
-                                        SliverGridDelegateWithFixedCrossAxisCount(
-                                            childAspectRatio: width >= 750
-                                                ? 3 / 2.8
-                                                : 3 / 2.2,
-                                            crossAxisSpacing: 0.5,
-                                            mainAxisSpacing: 0.5,
-                                            crossAxisCount: width >= 1000
-                                                ? 4
-                                                : width >= 750
-                                                    ? 3
-                                                    : 2),
-                                    itemCount: productssList.length,
-                                    itemBuilder: (context, index) {
-                                      ProductsModel prod = productssList[index];
-                                      return GridOfProducts(
-                                        prod: prod,
-                                      );
-                                    })
-                                : ListView.builder(
-                                    itemCount: productssList.length,
-                                    itemBuilder: (context, index) {
-                                      ProductsModel prod = productssList[index];
-                                      return ListOfProducts(
-                                        prod: prod,
-                                      );
-                                    },
-                                  ),
-                          );
+                          return width > 1000
+                              ? LayoutDesktop(
+                                  appProvider: appProvider,
+                                  categoriesList: categoriesList,
+                                  productsList: productsListFilt,
+                                  width: width,
+                                  height: height,
+                                )
+                              : Expanded(
+                                  child: width > 600
+                                      ? GridView.builder(
+                                          gridDelegate:
+                                              SliverGridDelegateWithFixedCrossAxisCount(
+                                                  childAspectRatio: 3 / 2.1,
+                                                  crossAxisSpacing: 0.5,
+                                                  mainAxisSpacing: 0.5,
+                                                  crossAxisCount:
+                                                      (MediaQuery.of(context)
+                                                                  .size
+                                                                  .width ~/
+                                                              250)
+                                                          .toInt()),
+                                          itemCount: productsListFilt.length,
+                                          itemBuilder: (context, index) {
+                                            ProductsModel prod =
+                                                productsListFilt[index];
+
+                                            return ListOfProducts(
+                                              appProvider: appProvider,
+                                              prod: prod,
+                                            );
+                                          })
+                                      : ListView.builder(
+                                          itemCount: productsListFilt.length,
+                                          itemBuilder: (context, index) {
+                                            ProductsModel prod =
+                                                productsListFilt[index];
+
+                                            return ListOfProducts(
+                                              appProvider: appProvider,
+                                              prod: prod,
+                                            );
+                                          },
+                                        ),
+                                );
                         } else if (snapshot.connectionState ==
                             ConnectionState.waiting) {
                           return Center(
@@ -180,51 +206,57 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-class ListOfCategories extends StatefulWidget {
-  const ListOfCategories({super.key, required this.categoriesList});
+class ListOfCategories extends StatelessWidget {
+  const ListOfCategories(
+      {super.key, required this.categoriesList, required this.appProvider});
 
   final List<CategoriesModel> categoriesList;
+  final AppProvider appProvider;
 
-  @override
-  State<ListOfCategories> createState() => _ListOfCategoriesState();
-}
-
-class _ListOfCategoriesState extends State<ListOfCategories> {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
         height: 80,
         width: MediaQuery.of(context).size.width,
-        child: ReorderableListView.builder(
-            onReorder: (oldIndex, newIndex) {
-              setState(() {
-                if (newIndex > oldIndex) {
-                  newIndex = newIndex - 1;
-                }
-              });
-              final categ = widget.categoriesList.removeAt(oldIndex);
-              widget.categoriesList.insert(newIndex, categ);
-            },
+        child: ListView.builder(
             shrinkWrap: true,
             scrollDirection: Axis.horizontal,
-            itemCount: widget.categoriesList.length,
+            itemCount: categoriesList.length,
             itemBuilder: (context, index) {
-              CategoriesModel categ = widget.categoriesList[index];
-              return Container(
-                key: UniqueKey(),
-                width: 120,
-                margin: const EdgeInsets.symmetric(
-                    vertical: 10.0, horizontal: 16.0),
-                padding: const EdgeInsets.all(8.0),
-                decoration: BoxDecoration(
-                  color: Colors.blueGrey,
-                  borderRadius: BorderRadius.circular(10.0),
-                ),
-                child: Center(
-                  child: Text(
-                    '${categ.name} ',
-                    overflow: TextOverflow.fade,
-                    style: const TextStyle(color: Colors.white),
+              CategoriesModel categ = categoriesList[index];
+              return GestureDetector(
+                onTap: () {
+                  //Seleziona la categoria da visualizzare al click della stessa
+                  appProvider.selectItem(categ.id);
+                },
+                child: Container(
+                  key: UniqueKey(),
+                  width: 120,
+                  margin: const EdgeInsets.symmetric(
+                      vertical: 10.0, horizontal: 16.0),
+                  padding: const EdgeInsets.all(8.0),
+                  decoration: BoxDecoration(
+                    color: appProvider.selectedIndex == categ.id
+                        ? appProvider.isLightMode
+                            ? Colors.blueGrey
+                            : Colors.grey[100]
+                        : appProvider.isLightMode
+                            ? Colors.grey[100]
+                            : Colors.blueGrey[600],
+                    borderRadius: BorderRadius.circular(10.0),
+                  ),
+                  child: Center(
+                    child: Text(
+                      '${categ.name} ',
+                      overflow: TextOverflow.fade,
+                      style: TextStyle(
+                          color: appProvider.selectedIndex == categ.id
+                              ? appProvider.isLightMode
+                                  ? Colors.white
+                                  : Colors.black
+                              : null,
+                          fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ),
               );
@@ -233,10 +265,11 @@ class _ListOfCategoriesState extends State<ListOfCategories> {
 }
 
 class ListOfProducts extends StatelessWidget {
-  const ListOfProducts({super.key, required this.prod});
+  const ListOfProducts(
+      {super.key, required this.prod, required this.appProvider});
 
   final ProductsModel prod;
-
+  final AppProvider appProvider;
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -283,7 +316,6 @@ class ListOfProducts extends StatelessWidget {
                     SizedBox(
                       height: 20,
                       child: ListView.builder(
-                        shrinkWrap: true,
                         scrollDirection: Axis.horizontal,
                         itemCount: prod.categories!.length,
                         itemBuilder: (context, index) {
@@ -309,76 +341,185 @@ class ListOfProducts extends StatelessWidget {
   }
 }
 
-class GridOfProducts extends StatelessWidget {
-  const GridOfProducts({super.key, required this.prod});
-
-  final ProductsModel prod;
+class LayoutDesktop extends StatelessWidget {
+  const LayoutDesktop(
+      {super.key,
+      required this.categoriesList,
+      required this.productsList,
+      required this.width,
+      required this.height,
+      required this.appProvider});
+  final AppProvider appProvider;
+  final List<CategoriesModel> categoriesList;
+  final List<ProductsModel> productsList;
+  final double width;
+  final double height;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.all(16.0),
-      padding: const EdgeInsets.all(8.0),
-      decoration: BoxDecoration(
-        color: Colors.blueGrey,
-        borderRadius: BorderRadius.circular(10.0),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          //Immagine del Prodotto
-          Hero(
-            tag: prod.id.toString(),
-            child: Image.network(
-              '${prod.images!.first!.src}',
-              width: 100,
-              height: 100,
-            ),
-          ),
-          Flexible(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                //Titolo del Prodotto
-                Padding(
-                  padding: const EdgeInsets.only(top: 16.0),
-                  child: Text(
-                    prod.name.toString(),
-                    style: const TextStyle(color: Colors.white, fontSize: 20),
-                  ),
-                ),
-                //Categorie Prodotto
-                Flexible(
-                  child: SizedBox(
-                    height: 20,
-                    child: ListView.builder(
-                      shrinkWrap: true,
-                      scrollDirection: Axis.horizontal,
-                      itemCount: prod.categories!.length,
-                      itemBuilder: (context, index) {
-                        Categoryz? category = prod.categories![index];
-                        return index == prod.categories!.length - 1
-                            ? Text(
-                                category!.name.toString(),
-                                style: TextStyle(color: Colors.grey.shade400),
-                              )
-                            : Text(
-                                '${category!.name.toString()},  ',
-                                style: TextStyle(color: Colors.grey.shade400),
-                              );
-                      },
+    return Row(
+      children: [
+        //Colonna Categorie
+        Expanded(
+          flex: 1,
+          child: SizedBox(
+            height: height - 56,
+            child: Container(
+              margin: const EdgeInsets.all(16.0),
+              decoration: BoxDecoration(
+                  color: appProvider.isLightMode
+                      ? Colors.blueGrey[100]
+                      : Colors.blueGrey,
+                  borderRadius: BorderRadius.circular(10.0)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  //Titolo scritta "Categorie"
+                  const Padding(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                    child: Text(
+                      'Categorie:',
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
                     ),
                   ),
-                ),
-              ],
+                  //Lista Categorie
+                  Expanded(
+                    child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: categoriesList.length,
+                        itemBuilder: (context, index) {
+                          CategoriesModel categ = categoriesList[index];
+                          return GestureDetector(
+                            onTap: () {
+                              appProvider.selectItem(categ.id);
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(12.0),
+                              margin: const EdgeInsets.all(8.0),
+                              decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(10.0),
+                                  color: appProvider.selectedIndex == categ.id
+                                      ? appProvider.isLightMode
+                                          ? Colors.blueGrey
+                                          : Colors.grey[100]
+                                      : appProvider.isLightMode
+                                          ? Colors.grey[100]
+                                          : Colors.blueGrey[600]),
+                              child: Text(
+                                categ.name,
+                                style: TextStyle(
+                                    color: appProvider.selectedIndex == categ.id
+                                        ? appProvider.isLightMode
+                                            ? Colors.white
+                                            : Colors.black
+                                        : null,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16),
+                              ),
+                            ),
+                          );
+                        }),
+                  ),
+                ],
+              ),
             ),
           ),
-        ],
-      ),
+        ),
+        //Colonna Prodotti
+        Expanded(
+          flex: 3,
+          child: SizedBox(
+            height: height - 56,
+            child: Container(
+              margin: const EdgeInsets.all(16.0),
+              decoration: BoxDecoration(
+                  color: appProvider.isLightMode
+                      ? Colors.blueGrey[100]
+                      : Colors.blueGrey,
+                  borderRadius: BorderRadius.circular(10.0)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  //TextField Ricerca
+                  Center(
+                    child: Container(
+                        width: 400,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16.0, vertical: 8.0),
+                        child: const TextField(
+                          decoration: InputDecoration(
+                              border: OutlineInputBorder(
+                                borderRadius:
+                                    BorderRadius.all(Radius.circular(10.0)),
+                              ),
+                              label: Text('Ricerca Prodotto'),
+                              suffixIcon: Icon(Icons.search)),
+                        )),
+                  ),
+                  //Titolo scritta "Prodotti"
+                  const Padding(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                    child: Text(
+                      'Categoria Selez. :',
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+                    ),
+                  ),
+                  Expanded(
+                    child: GridView.builder(
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                            childAspectRatio: 2 / 2.3,
+                            crossAxisSpacing: 0.5,
+                            mainAxisSpacing: 0.5,
+                            crossAxisCount:
+                                (MediaQuery.of(context).size.width ~/ 250)
+                                    .toInt()),
+                        itemCount: productsList.length,
+                        itemBuilder: (context, index) {
+                          ProductsModel prod = productsList[index];
+                          return GestureDetector(
+                            onTap: () {},
+                            child: Container(
+                              padding: const EdgeInsets.all(12.0),
+                              margin: const EdgeInsets.all(8.0),
+                              decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(10.0),
+                                  color: appProvider.isLightMode
+                                      ? Colors.grey[100]
+                                      : Colors.blueGrey[600]),
+                              child: Column(
+                                children: [
+                                  //Immagine del Prodotto
+                                  Hero(
+                                    tag: prod.id.toString(),
+                                    child: Image.network(
+                                      '${prod.images!.first!.src}',
+                                      width: 120,
+                                      height: 120,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                  Text(
+                                    prod.name.toString(),
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

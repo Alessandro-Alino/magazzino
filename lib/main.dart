@@ -24,9 +24,8 @@ class MyApp extends StatelessWidget {
           theme: ThemeData(
               useMaterial3: true,
               primarySwatch: Colors.blue,
-              brightness: appProvider.isLightMode == true
-                  ? Brightness.light
-                  : Brightness.dark),
+              brightness:
+                  appProvider.isLightMode ? Brightness.light : Brightness.dark),
           home: appProvider.isLoggedIn == true
               ? const HomePage()
               : const LoginPage(),
