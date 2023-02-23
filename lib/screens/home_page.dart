@@ -44,7 +44,7 @@ class _HomePageState extends State<HomePage> {
         .where((element) => element.categories!
             .map((e) => e!.id == appProvider.selectedIndex)
             .toList()
-            .first)
+            .any((element) => element))
         .toList();
 
     double width = MediaQuery.of(context).size.width;
@@ -295,6 +295,8 @@ class ListOfProducts extends StatelessWidget {
                   '${prod.images!.first!.src}',
                   width: 120,
                   height: 120,
+                  errorBuilder: (context, error, stackTrace) =>
+                      const Text('err image'),
                 ),
               ),
               Flexible(
