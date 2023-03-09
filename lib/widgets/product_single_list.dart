@@ -30,12 +30,17 @@ class ProductSingleList extends StatelessWidget {
             Row(
               children: [
                 Hero(
-                  tag: Text('${prod.id} '),
+                  tag: Text('${prod.id}'),
                   child: Image.network(
                     '${prod.images!.first!.src}',
                     height: 100,
                     errorBuilder: (context, exception, stackTrace) {
-                      return const Text('Err. image...');
+                      return Container(
+                          height: 100,
+                          width: 100,
+                          decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(10.0)),
+                          child: const Text('Err. image...'));
                     },
                   ),
                 ),
