@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -55,21 +54,29 @@ class _DetailPageState extends State<DetailPage> {
             expandedHeight: 280.0,
             pinned: true,
             flexibleSpace: FlexibleSpaceBar(
-              background: Hero(
-                tag: Text('${widget.product.id}'),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Image.network(
-                    '${widget.product.images!.first!.src}',
+              background: Column(
+                children: [
+                  Hero(
+                    tag: Text('${widget.product.id}'),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Image.network(
+                        '${widget.product.images!.first!.src}',
+                        height: 200,
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
               title: Container(
                 decoration:
                     BoxDecoration(borderRadius: BorderRadius.circular(5.0)),
                 child: Text(
-                  '${widget.product.name}, ${widget.product.id}',
-                  style: const TextStyle(color: Colors.grey),
+                  '${widget.product.name}',
+                  style: TextStyle(
+                      color: appProvider.isLightMode
+                          ? Colors.black
+                          : Colors.white),
                 ),
               ),
             ),

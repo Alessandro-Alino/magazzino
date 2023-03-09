@@ -18,6 +18,7 @@ class RicercaProdotto extends StatelessWidget {
       child: Column(
         children: [
           TextFormField(
+            autofocus: appProvider.isSearching,
             controller: appProvider.ricercaController,
             onChanged: (value) {
               appProvider.searchedProducts(value);
@@ -25,24 +26,24 @@ class RicercaProdotto extends StatelessWidget {
             decoration: const InputDecoration(
                 border: OutlineInputBorder(), label: Text('Cerca')),
           ),
-          const Divider(
-            height: 30,
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: appProvider.connessione
-                ? Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
-                      Text(
-                        'Cerca un Prodotto... ',
-                        style: TextStyle(fontSize: 17),
-                      ),
-                      Icon(Icons.search)
-                    ],
-                  )
-                : const Text('Sembra non ci sia Connessine!'),
-          ),
+          appProvider.ricercaController.text.isEmpty
+              ? Padding(
+                  padding: const EdgeInsets.symmetric(
+                      vertical: 32.0, horizontal: 16.0),
+                  child: appProvider.connessione
+                      ? Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: const [
+                            Text(
+                              'Cerca un Prodotto... ',
+                              style: TextStyle(fontSize: 17),
+                            ),
+                            Icon(Icons.search)
+                          ],
+                        )
+                      : const Text('Sembra non ci sia Connessine!'),
+                )
+              : const SizedBox(),
           productsListSearched.isEmpty
               ? const SizedBox()
               : ListView.builder(
