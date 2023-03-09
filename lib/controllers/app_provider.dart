@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:magazzino/controllers/repository.dart';
+import 'package:magazzino/controllers/simple_shared_pref.dart';
 import 'package:magazzino/models/login_model.dart';
 import 'package:magazzino/models/WooCommerceModels/categories_models.dart';
 import 'package:magazzino/models/WooCommerceModels/product_variations_model.dart';
@@ -9,8 +10,10 @@ import 'package:magazzino/models/WooCommerceModels/products_model.dart';
 
 class AppProvider extends ChangeNotifier {
   final _formKey = GlobalKey<FormState>();
+  int _selectedBottomTab = 0;
   final TextEditingController _userNameController = TextEditingController();
   final TextEditingController _passWordController = TextEditingController();
+  final TextEditingController _ricercaController = TextEditingController();
   double? _width;
   double? _height;
   String _errorUserNameLogin = '';
@@ -21,16 +24,24 @@ class AppProvider extends ChangeNotifier {
   bool _isLoggedIn = false;
   bool _isLoading = false;
   bool _connessione = false;
-  double _widthContainer = 0.0;
+  bool _isSearching = false;
   LoginModel? _loginModel;
   List<CategoriesModel> _categoriesList = [];
+  final List<CategoriesModel> _categoriesListSelected = [];
   List<ProductsModel> _productsList = [];
+  List<ProductsModel> _productsListSearched = [];
   List<ProductVariationsModel> _productVarList = [];
   int? _selectedIndex;
   final TextEditingController _reginaQntController = TextEditingController();
   final TextEditingController _tagliaQntrdController = TextEditingController();
   final TextEditingController _regularPriceController = TextEditingController();
   final TextEditingController _salePriceController = TextEditingController();
+
+  //SelectedBottomNavBarItem
+  void onItemTapped(int index) {
+    _selectedBottomTab = index;
+    notifyListeners();
+  }
 
   //Cambio Tema Light e Dark
   setLightOrDarkMode() {
@@ -68,25 +79,21 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  //Controllo se si esegue una ricerca
+  isSearchMode(bool value) {
+    _isSearching = value;
+    notifyListeners();
+  }
+
   //Controllo Stream della Connessione
   checkConnection(
     ConnectivityResult result,
   ) {
     if (result == ConnectivityResult.none) {
       _connessione = false;
-      _widthContainer = 110.0;
     } else {
       _connessione = true;
-      _widthContainer = 90.0;
     }
-    notifyListeners();
-  }
-
-  //Controllo Connessione Messaggio
-  modificaWidth() async {
-    await Future.delayed(const Duration(seconds: 3), () {
-      _widthContainer = 0;
-    });
     notifyListeners();
   }
 
@@ -113,6 +120,48 @@ class AppProvider extends ChangeNotifier {
             )),
       ),
     );
+    notifyListeners();
+  }
+
+  //add categoryitem in prefered grid
+  addInGrid(CategoriesModel categ, BuildContext context) async {
+    if (_categoriesListSelected.length == 6) {
+      mostraMessaggio2(context, 'Non puoi Aggiungere altri elementi');
+    } else if (_categoriesListSelected.contains(categ)) {
+      mostraMessaggio2(context, 'Già presente nei Preferiti');
+    } else {
+      _categoriesListSelected.add(categ);
+      await SimpleSharedPreferences()
+          .saveCategPreferiteGrid(_categoriesListSelected);
+    }
+    notifyListeners();
+  }
+
+  //Avviso Generico2
+  mostraMessaggio2(BuildContext context, String mex) {
+    ScaffoldMessenger.of(context)
+        .showMaterialBanner(MaterialBanner(content: Text(mex), actions: [
+      TextButton(
+          onPressed: () {
+            ScaffoldMessenger.of(context).hideCurrentMaterialBanner();
+          },
+          child: const Text('Chiudi'))
+    ]));
+    notifyListeners();
+  }
+
+  //RicercaProdotto
+  searchedProducts(String text) {
+    if (text.isEmpty) {
+      _productsListSearched.clear();
+    } else {
+      _productsListSearched = _productsList
+          .where(
+            (element) =>
+                element.name!.toLowerCase().contains(text.toLowerCase()),
+          )
+          .toList();
+    }
     notifyListeners();
   }
 
@@ -179,9 +228,11 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  int get selectedBottomTab => _selectedBottomTab;
   GlobalKey<FormState> get formKey => _formKey;
   TextEditingController get userNameController => _userNameController;
   TextEditingController get passWordController => _passWordController;
+  TextEditingController get ricercaController => _ricercaController;
   double? get width => _width;
   double? get height => _height;
   String get errorUserNameLogin => _errorUserNameLogin;
@@ -192,10 +243,12 @@ class AppProvider extends ChangeNotifier {
   bool get isLoggedIn => _isLoggedIn;
   bool get isLoading => _isLoading;
   bool get connessione => _connessione;
-  double? get widthContainer => _widthContainer;
+  bool get isSearching => _isSearching;
   LoginModel? get loginModel => _loginModel;
   List<CategoriesModel> get categoriesList => _categoriesList;
+  List<CategoriesModel> get categoriesListSelected => _categoriesListSelected;
   List<ProductsModel> get productsList => _productsList;
+  List<ProductsModel> get productsListSearched => _productsListSearched;
   int? get selectedIndex => _selectedIndex;
   List<ProductVariationsModel> get productVariationsList => _productVarList;
   TextEditingController get reginaQntController => _reginaQntController;

@@ -56,7 +56,7 @@ class _DetailPageState extends State<DetailPage> {
             pinned: true,
             flexibleSpace: FlexibleSpaceBar(
               background: Hero(
-                tag: widget.product.id.toString(),
+                tag: Text('${widget.product.id} '),
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Image.network(
